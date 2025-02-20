@@ -7,7 +7,21 @@ import connectDB from './db/index.js';
 dotenv.config({path: './env'}); //Reads the .env file and adds its variables to process.env, making them accessible throughout the app. and we can use them then like process.env.PORT, process.env.MONGODB_URI etc.
 
 connectDB()
+.then(() => {
+    const server = app.listen(process.env.PORT || 80000, () => {
+        console.log(`Server is listening on port : ${process.env.PORT}`); 
+    });
 
+    //handles server connection error
+    server.on("error", (err) => {
+        console.error("Server connection error : ", err);
+        process.exit(1); // Exit the process on server connection failure
+    });
+})
+.catch((err) => {
+    console.error("Mongo Db connection falied !! ", err);
+    process.exit(1); // Exit the process on DB connection failure
+})
 
 
 
