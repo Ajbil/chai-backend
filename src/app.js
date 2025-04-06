@@ -21,4 +21,8 @@ app.use(express.urlencoded({ extended: true,limit: "16kb" }));
 app.use(express.static("public")); // Serves static files from the public directory
 app.use(cookieParser()); // server se user ke browser ki cookies access kar pau i.e  perfoorm CRUD operations on cookies
 
+app.get("/", (req, res) => {
+    res.send("Server is running fine !!");
+});
+
 export  { app };

@@ -10,7 +10,7 @@ const userSchema = new Schema({
         unique: true,
         lowercase: true,
         trim: true,
-        index: true
+        index: true // for faster search in DB
     },
     email: {
         type: String,
@@ -51,17 +51,20 @@ const userSchema = new Schema({
 }
 );
 
-userSchema.pre("save", async function(next) { // encrytpion takes time so use async await
+//middleware to hash passsword before saving to DB
+userSchema.pre("save", async function(next) { // encrytpion takes time so use async await  ||   and here i cant write it using arrrow function becasue they dont have refernce of this and so i would not be able to use this.password  -- see video for detail undersatnding 6:45:00
     if (this.isModified("password")) { // if password is modified then only encrypt it  before supppose user changed its avatar then we dont want to update password , we only want to encrypt password for first time or when it is changed 
         this.password = await bcrypt.hash(this.password, 10);
     }
     next();
 });
 
+//verifying password during login
 userSchema.methods.isPasswordCorrect = async function(password) {  //this custom method will be used to compare password when user login
     return await bcrypt.compare(password, this.password);
 }
 
+//generating token for authentication
 userSchema.methods.generateAccessToken = function() {
     return jwt.sign(
         {
@@ -76,6 +79,7 @@ userSchema.methods.generateAccessToken = function() {
     );
 }
 
+// refresh token are long-lived token then access token
 userSchema.methods.generateRefreshToken = function() {
     return jwt.sign(
         {

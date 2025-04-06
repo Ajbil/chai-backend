@@ -1,3 +1,6 @@
+// copied code from documentation of multer and modified it to use in our project
+// here i am  configuring multer to temporarily store uploaded files on our local disk.
+
 import multer from 'multer';
 
 const storage = multer.diskStorage({  
