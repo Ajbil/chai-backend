@@ -1,5 +1,7 @@
 // require('dotenv').config({path: './env'});
 // import mongoose from "mongoose"
+// import { DB_NAME } from './constants.js';
+
 
 import dotenv from 'dotenv';
 import connectDB from './db/index.js';
@@ -8,7 +10,7 @@ dotenv.config({path: './env'}); //Reads the .env file and adds its variables to 
 
 connectDB()
 .then(() => {
-    const server = app.listen(process.env.PORT || 80000, () => {
+    const server = app.listen(process.env.PORT || 8000, () => {
         console.log(`Server is listening on port : ${process.env.PORT}`); 
     });
 
@@ -19,7 +21,7 @@ connectDB()
     });
 })
 .catch((err) => {
-    console.error("Mongo Db connection falied !! ", err);
+    console.error("Mongo Db connection failed !! ", err);
     process.exit(1); // Exit the process on DB connection failure
 })
 
@@ -27,15 +29,16 @@ connectDB()
 
 
 
-/*   This is one way of connecting to DB and starting the server
+/*   This is one way of connecting to DB in production and starting the server
 
 import express from 'express';
 const app = express();
 
 ( async() => {
     try{
-        await mongoose.connect(`${process.env.MONGODB_URI}/${DB_NAME}`)
-        app.on("errror", (error) => {
+        await mongoose.connect(`${process.env.MONGODB_URI}/${DB_NAME}`)       //this DB_NAME  is used to connect to a specific DB in our MONGO server
+        // it may be possible that Db is connected but out express app is unable to talk to Db so we use a listener just after Db connection 
+        app.on("error", (error) => {
             console.log("ERRR : `", error);
             throw error
         })
@@ -47,7 +50,7 @@ const app = express();
     }
     catch(err){
         console.error("Error: ", err);
-        throw err
+        throw err;
     }
 })()
 
