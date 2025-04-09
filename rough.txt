@@ -1,3 +1,4 @@
-left on 20 feb from 6:40 rewatch
+to run open terminal and run the below command
 
-left on 27 feb from 7:10 rewatch
+PS C:\Users\ariha\Documents\complete backend hitesh part1\chai-backend> npm run dev
+

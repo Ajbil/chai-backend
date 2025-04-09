@@ -29,7 +29,7 @@ const userSchema = new Schema({
         type: String,    // we will use third part cloudinary url here
         required: true
     },
-    coverimage: {
+    coverImage: {
         type: String,    // we will use third part cloudinary url here
     },
     watchHistory: [   // this field is depenedent on video so see how to write this 

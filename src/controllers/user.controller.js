@@ -5,7 +5,7 @@ import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 
-const registerUser = asyncHandler( async (req, res) => {
+const registerUser = asyncHandler( async (req, res) => {  // using asyncHandler() to wrap this controller — that way, any throw inside gets caught and passed to Express's error handling middleware.
     /*Steps
     — get user details from frontend 
 
@@ -32,8 +32,8 @@ const registerUser = asyncHandler( async (req, res) => {
     // }  -- like this i can check for each field but below is advanced way to do it
 
     if(
-        [fullName, email, username, password].some((filed) =>
-        filed?.trim() === "")
+        [fullName, email, username, password].some((field) =>
+        field?.trim() === "")
     ) {
         throw new ApiError(400, "All fields are required"); // 400 bad request error
     }
@@ -44,18 +44,31 @@ const registerUser = asyncHandler( async (req, res) => {
     //         throw new ApiError(400, "User already exists"); // 400 bad request error
     //     }
     // })  -- this is a simple way to do it but below is advanced way to do it -- i want that no user should have same username or email so i check for botjh in advanced manner 
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [{ username }, { email }]
     })
     //console.log("existedUser:", existedUser); // for debugging purpose
     if(existedUser) {
         throw new ApiError(409, "User already exists"); // 400 bad request error
     }
-
+    //console.log(req.files);  -- uncomment to see what req.files object returns
 
     // check for images, check for avatar  -- not like express gives us access to req.body similary multer gives us access to req.files -- so we can check if avatar is present or not -- if needed see video for it
-    const avatarLocalPath = req.files?.avatar[0]?.path
-    const coverImageLocalPath = req.files?.coverImage[0]?.path  //-- we used optional chaining here as If req.files is undefined (e.g., the user didn’t upload any files), and you try to access req.files.avatar[0].path, it will throw an error and crash app . by using ? if any of above is missing we just get undefined and app does not break
+    // const avatarLocalPath = req.files?.avatar[0]?.path  //-- we used optional chaining here as If req.files is undefined (e.g., the user didn’t upload any files), and you try to access req.files.avatar[0].path, it will throw an error and crash app . by using ? if any of above is missing we just get undefined and app does not break  -- but when i teseted using psotamn it broke so below method used to write code
+    //const coverImageLocalPath = req.files?.coverImage[0]?.path  
+
+    let avatarLocalPath; 
+    if(req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0) {
+        avatarLocalPath = req.files.avatar[0].path;
+    }
+    console.log(avatarLocalPath);
+
+    let coverImageLocalPath;
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files.coverImage[0].path; // check if cover image is present or not
+    }
+    console.log(coverImageLocalPath); // for debugging purpose
+
 
     if(!avatarLocalPath) {
         throw new ApiError(400, "Avatar is required"); // 400 bad request error
@@ -64,7 +77,7 @@ const registerUser = asyncHandler( async (req, res) => {
 
     // upload them on cloudinary, avatar was required filed so check if it is properly uploaded
     const avatar = await uploadOnCloudinary(avatarLocalPath); 
-    const coverImage = coverImageLocalPath ? await uploadOnCloudinary(coverImageLocalPath) : null; // if cover image is not provided then we set it to null
+    const coverImage = coverImageLocalPath ? await uploadOnCloudinary(coverImageLocalPath) : null;// if cover image is not provided then we set it to null
 
     if(!avatar) {
         throw new ApiError(500, "Avatar upload failed, reupload it"); // 500 internal server error
@@ -81,7 +94,7 @@ const registerUser = asyncHandler( async (req, res) => {
         username: username.toLowerCase(),
     })
     
-    // checking if user sach mai created or not
+    // checking if user sach mai created or not by refethcing user from DB but excluded sensitive data 
     const createdUser = await User.findById(user._id).select("-password -refreshToken"); // we dont want to send password and refresh token in response so we use select method to exclude them from the response
 
     if(!createdUser) {
