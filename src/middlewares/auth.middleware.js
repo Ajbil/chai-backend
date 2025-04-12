@@ -1,9 +1,9 @@
 // Its work is to verify user hai ya nahi hai - logic is when user will login I have sent refresh and accestoken with that llogin request so i will check if he have correct token, and if corect then i will add a new object in req i.e req.user
 
-import { ApiError } from "../utils/ApiError";
-import { asyncHandler } from "../utils/asyncHandler";
-import  jwt from ("jsonwebtoken");
-import { User } from "../models/user.model";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import jwt from "jsonwebtoken";
+import { User } from "../models/user.model.js";
 
 export const verifyJWT = asyncHandler(async(req, res, next) => {
     // I need cookies access and which i get easily freom req object ass i ahve used cookie parser and when login then i added in res those cookies 

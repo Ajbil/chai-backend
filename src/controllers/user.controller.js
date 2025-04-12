@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js"; 
 import { ApiResponse } from "../utils/ApiResponse.js";
-
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshToken = async(userId) => {
     try {
@@ -135,8 +135,9 @@ const loginUser= asyncHandler(async (req, res) => {
     */
 
     const { email, username, password } = req.body; // destructuring the data from request body
+    console.log(email);
 
-    if(!username || !email){
+    if(!username && !email){
         throw new ApiError(400, "Username or email is required"); // 400 bad request error
     }
     
@@ -158,7 +159,7 @@ const loginUser= asyncHandler(async (req, res) => {
     // access and refresh token generate  -- this we will do many time so made a method of it 
     const {accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
-    const loggedInUser = User.findById(user._id).    // 27:00 video see
+    const loggedInUser = await User.findById(user._id).    // 27:00 video see
     select("-password -refreshToken")
 
     //send cookies
@@ -210,5 +211,57 @@ const logoutUser = asyncHandler(async(req, res) => {
     .json(new ApiResponse(200, {}, "User loggedOut Successfully!"))
 });
 
+const refreshAccessToken = asyncHandler(async(req, res) => {
+    //access the refeshtoken firstly 
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
-export { registerUser, loginUser, logoutUser };
+    if(!incomingRefreshToken){
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    // verify the incoming refreshToken -- becasuee from user ke pass jo hai vo toh encrypted hai and Db mai raw token saved hai 
+    try {
+        const decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        );
+    
+        const user = User.findById(decodedToken?._id)   // remember while making refresh token i just passed user id as payload so here i get it by ._id
+    
+        if(!user){
+            throw new ApiError(401, "invalid refresh token")
+        }
+    
+        //now i need to match that this incomingReq token set by user is matching with what we save in our databae using  generateAcessAndRefresh token funciton -- then only i can confirm that this is the same user who is trying to login again
+        if(incomingRefreshToken !== user?.refreshToken){
+            throw new ApiError(401, "RefreshToken is expired or used")
+        };
+    
+        // if we came here then everythoing okay so generate new access token for this user
+        const options = {
+            httpOnly: true,
+            secure: true
+        }
+    
+        const { accessToken, newRefreshToken} = await generateAccessAndRefreshToken(user._id);
+    
+        return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", newRefreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    accessToken,
+                    refreshToken: newRefreshToken
+                },
+                "Access Token Refreshed!"  
+            )
+        )
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Invalid refresh token")  
+    }
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
