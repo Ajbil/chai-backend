@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { registerUser } from '../controllers/user.controller.js';
+import { loginUser, logoutUser, registerUser } from '../controllers/user.controller.js';
 import { upload } from '../middlewares/multer.middleware.js'
+import { verifyJWT } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -18,6 +19,9 @@ router.route("/register").post(
     registerUser    // this middleware runs before this controller and stores uploaded files in temp folder
 );
 
+router.route("/login").post(loginUser);
 
+//secured routes --- here i will need to use auth middleware 
+router.route("/logout").post(verifyJWT, logoutUser)
 
 export default router;

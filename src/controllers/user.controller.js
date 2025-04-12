@@ -5,6 +5,21 @@ import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 
+const generateAccessAndRefreshToken = async(userId) => {
+    try {
+        const user = await User.findById(userId);
+        const accessToken = user.generateAccessToken(); 
+        const refreshToken = user.generateRefreshToken(); 
+
+        user.refreshToken = refreshToken; // i need to store refreshToken in DB, no need for accesstoken 
+        await user.save({ validateBeforeSave: false });  // saved in Db -- seee video to understand why used this 23:00
+        return { accessToken, refreshToken };
+
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while genrating refresj and access token !!")
+    }
+};
+
 const registerUser = asyncHandler( async (req, res) => {  // using asyncHandler() to wrap this controller — that way, any throw inside gets caught and passed to Express's error handling middleware.
     /*Steps
     — get user details from frontend 
@@ -107,6 +122,93 @@ const registerUser = asyncHandler( async (req, res) => {  // using asyncHandler(
         new ApiResponse(200, createdUser, "User registered successfully")
     )
 
-})
+});
 
-export { registerUser };
+const loginUser= asyncHandler(async (req, res) => {
+    /* steps 
+    get data from req.body
+    check existence of user on basis of username/email
+    find the user in Db
+    password check
+    access and refresh token generate 
+    send tokens by cookies  and send res that succefully logined
+    */
+
+    const { email, username, password } = req.body; // destructuring the data from request body
+
+    if(!username || !email){
+        throw new ApiError(400, "Username or email is required"); // 400 bad request error
+    }
+    
+    // abhi I have not decided ki username or email kiske basis pe login karana hai user ko so i am writing code accordingly which finds either username or email in DB - so it is some advanced way 
+    const user = await User.findOne({
+        $or: [{username}, {email}]
+    })
+
+    if(!user){
+        throw new ApiError(404, "User not exists"); // 401 unauthorized error
+    }
+
+    // password check
+    const isPasswordValid = await user.isPasswordCorrect(password);
+    if(!isPasswordValid){
+        throw new ApiError(401, "Invalid User Credentials"); // 401 unauthorized error
+    }
+
+    // access and refresh token generate  -- this we will do many time so made a method of it 
+    const {accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
+
+    const loggedInUser = User.findById(user._id).    // 27:00 video see
+    select("-password -refreshToken")
+
+    //send cookies
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)        // as I imporrted cookie parser middlweare so i can sent as many as cookie i want using .cookie()
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user: loggedInUser, accessToken,
+                refreshToken
+            },
+            "User logged in successfully!"
+        )
+    )
+});
+
+//logic is remove cookies of that user and also refeshToken of that user from DB  -- Here i will need to design my ownn middleware see video for why 
+const logoutUser = asyncHandler(async(req, res) => {
+    // now here i have aaccess of req.user beacuse its a secured route as i used auth middleware on thisn route. so i can get user easily now 
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                refreshToken: undefined
+            }
+        },
+        {
+            new: true
+        }
+    )
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User loggedOut Successfully!"))
+});
+
+
+export { registerUser, loginUser, logoutUser };
