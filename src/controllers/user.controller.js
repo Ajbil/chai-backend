@@ -297,7 +297,7 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
         throw new ApiError(400, "Full name and email are required")
     }
 
-    const user = User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
@@ -346,7 +346,7 @@ const updateUserAvatar = asyncHandler(async(req, res) => {
 
 const updateUserCoverImage = asyncHandler(async(req, res) => {
     // firtly i am using multer so ican access file like req.file
-    const coverImageLocalPath = req.file?.path
+    const coverImageLocalPath = req.file?.path  // not used req.files beacuse here we upload a single file 
 
     if(!coverImageLocalPath){
         throw new ApiError(400, "Cover Image is missing.")
@@ -375,4 +375,78 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
     )
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken,changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage };
+
+const getUserChannelProfile = asyncHandler(async(req,res) => {
+    const { username } = req.params; /// as channel name wuill be passed in url 
+
+    if(!username?.trim()){
+        throw new ApiError(400, "Username is required")
+    }
+
+    // now we apply aggregation pipeline -- 2:52:00 -watch as a logic told that what we get after aggreagte pipeline is arrays 
+    const channel = await User.aggregate([
+        {
+            $match: {
+                username: username.toLowerCase()  // after this line i get the user whose channel i want to see
+            }
+        }, // now i find how amny subscribers are there for this channel
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },  // now i apply one more pipeline to fin , how many channels i have subscribed
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        }, //now i got both these values "subscribers" and "subscribedTo"  now i will add thee as fields in user model so that ek hi object mai saara data aa jaye 
+        {
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers"
+                },
+                channelsSubscribedToCount: {
+                    $size: "$subscribedTo"
+                }, // Now one more thing i want tto do that if I am visiting profile of a  channel then if i am subscribed to it i see "subscribed" and not thne "click to subscribe" this in a button for that i will send tru or false in a flag isSubscribed to frontend 
+                isSubscribed: {
+                    $cond: {
+                        if: {$in: [req.user?._id, "$subscribers.ssubscriber"]},
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        }, // now i will use project to send only the value reqired to sent not all walue 
+        {
+            $project: {
+                fullName: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1
+            }
+        }
+    ])
+    console.log(channel)  //-- check it what i got in channel variable after applying these pipelines, we will see what data type does aggregate() returns , it will help to work further 
+
+    if(!channel?.length){
+        throw new ApiError(404, "Channel does nto exist")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, channel[0], "User channel fetched successfully!")  // we not returned full channel array we just return first object in it as it is enough
+    )
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken,changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, getUserChannelProfile};
