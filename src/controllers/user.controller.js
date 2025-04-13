@@ -4,6 +4,8 @@ import { User } from "../models/user.model.js";
 import {uploadOnCloudinary} from "../utils/cloudinary.js"; 
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import { mongo } from "mongoose";
+import mongoose from "mongoose";
 
 const generateAccessAndRefreshToken = async(userId) => {
     try {
@@ -449,4 +451,59 @@ const getUserChannelProfile = asyncHandler(async(req,res) => {
     )
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken,changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, getUserChannelProfile};
+const getWatchHistory = asyncHandler(async (req, res) => {
+    const user = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id)  // one imp thing told here 3:18:00 MUST SEE IMP FOR INTERVIEW 
+            }
+        }, // after this line i got the user now i need to lookup in watchHistory filed of this user
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",   //after this line of code i got id's of all the videos which this user wacthe dnow here i need to apply a  sub-pipeline to get owner 
+                pipeline: [
+                    {
+                        $lookup: {  // yaha pe hum videos model mai hai abhi and from here we do lookup in users model to get owner
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",  // now here i get that owner complete detials but i dont want all that so here again apply one more pipeline and fetch only required fields 
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        //3:24:00
+                        $addFields: {
+                            owner:{
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user[0].watchHistory,
+            "Watch history fetched successfully!"
+        )
+    )
+})
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken,changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, getUserChannelProfile, getWatchHistory};
