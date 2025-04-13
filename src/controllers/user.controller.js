@@ -264,4 +264,115 @@ const refreshAccessToken = asyncHandler(async(req, res) => {
     }
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+const changeCurrentPassword = asyncHandler(async(req, res) => {
+    const { oldPassword, newPassowrd } = req.body;
+
+    const user = await User.findById(req.user._id) // now user is able to change password so it is sure that he must been loggedin so then it means he passed auth middleware and so i have access to req.user so i use it to get id of user
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+
+    if(!isPasswordCorrect){
+        throw new ApiError(401, "Invalid Old Password")
+    }
+
+    user.password = newPassowrd;
+    await user.save({ validateBeforeSave: false }) 
+
+    return res.status(200).json(
+        new ApiResponse(200, {}, "Password changed successfully")   
+    )
+});
+
+const getCurrentUser = asyncHandler(async(req, res) => {
+// i have put full user info in req.user in auth middleware so i can access it here directly
+    return res.status(200).json(
+        new ApiResponse(200, req.user, "User fetched successfully")
+    )
+});
+
+//now above we have function for cchanging password now if i want to update other details of user for this below mehtod 
+const updateAccountDetails = asyncHandler(async(req, res) => {
+    const {fullName, email } = req.body;
+
+    if(!fullName || !email){
+        throw new ApiError(400, "Full name and email are required")
+    }
+
+    const user = User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                fullName,
+                email
+            }   
+        },
+        {new: true}
+    ).select("-password") 
+
+    return res.status(200)
+    .json( new ApiResponse(200, user, "Account details updated successfully"))
+});
+
+//Now about we wrote code for updating text based data now for files its some differnt -- i need to use multer middleware to access files and also auth middleware so that only logged in user an update files -- routing ke time pe keep this in mindd 
+const updateUserAvatar = asyncHandler(async(req, res) => {
+    // firtly i am using multer so ican access file like req.file
+    const avatarLocalPath = req.file?.path
+
+    if(!avatarLocalPath){
+        throw new ApiError(400, "Avatar is missing.")
+    };
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+    //now if i dont get url then its proble
+    if(!avatar.url){
+        throw new ApiError(400, "Error while uploading avatar on cloudinary")
+    }
+
+    //Now finally update avatar filed
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                avatar: avatar.url  // logic see that in my user model i have only string value in avatar fled beacuse i have taken only url, so here avatar is full object i dont need it so took only url using avatar.url
+            }
+        },
+        {new:true}
+    ).select("-password")
+
+    return res.status(200).json(
+        new ApiResponse(200, user, "Avatar updated successfully")
+    )
+});
+
+const updateUserCoverImage = asyncHandler(async(req, res) => {
+    // firtly i am using multer so ican access file like req.file
+    const coverImageLocalPath = req.file?.path
+
+    if(!coverImageLocalPath){
+        throw new ApiError(400, "Cover Image is missing.")
+    };
+
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+
+    //now if i dont get url then its proble
+    if(!coverImage.url){
+        throw new ApiError(400, "Error while uploading coverImage on cloudinary")
+    }
+
+    //Now finally update avatar filed
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                coverImage: coverImage.url  // logic see that in my user model i have only string value in avatar fled beacuse i have taken only url, so here avatar is full object i dont need it so took only url using avatar.url
+            }
+        },
+        {new:true}
+    ).select("-password")
+
+    return res.status(200).json(
+        new ApiResponse(200, user, "Cover image updated successfully")
+    )
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken,changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage };
