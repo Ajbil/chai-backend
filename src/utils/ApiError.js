@@ -1,4 +1,4 @@
-// created  a custom error class which extends from NoeSJ built it error class  to handle the errors in a better way
+// created  a custom error class which extends from NodeJS built it error class  to handle the errors in a better way
 class ApiError extends Error {
   constructor(
     statusCode, 
@@ -23,3 +23,5 @@ class ApiError extends Error {
 }
 
 export { ApiError };
+
+//this code is written to standarize the error response format

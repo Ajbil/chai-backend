@@ -33,7 +33,7 @@ const asyncHandler = (fn) => async(req, res, next) => {
 }
 
 How it works --
-asyncHandler(fn) takes an async function (fn) as input and returns a new function that executes fn.
+asyncHandler(fn) is a higher order funciton it takes an async function (fn) as input and returns a new function that executes fn.
 If fn throws an error, it is caught and sent as a response.
 
 Note  -- this asynchHandler is a higher order function  — a wrapper that helps catch errors in async route handlers in Express.

@@ -9,7 +9,7 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET 
 });
     
-
+//file upload can cause error so we will use try catch block
 const uploadOnCloudinary = async (localFilePath) => {
     try{
         if(!localFilePath) return null

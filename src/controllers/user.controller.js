@@ -14,7 +14,7 @@ const generateAccessAndRefreshToken = async(userId) => {
         const refreshToken = user.generateRefreshToken(); 
 
         user.refreshToken = refreshToken; // i need to store refreshToken in DB, no need for accesstoken 
-        await user.save({ validateBeforeSave: false });  // saved in Db -- seee video to understand why used this 23:00
+        await user.save({ validateBeforeSave: false });  // saved in Db -- seee video to understand why used this 22:00
         return { accessToken, refreshToken };
 
     } catch (error) {
@@ -70,7 +70,7 @@ const registerUser = asyncHandler( async (req, res) => {  // using asyncHandler(
     }
     //console.log(req.files);  -- uncomment to see what req.files object returns
 
-    // check for images, check for avatar  -- not like express gives us access to req.body similary multer gives us access to req.files -- so we can check if avatar is present or not -- if needed see video for it
+    // check for images, check for avatar  -- not like express gives us access to req.body similary multer gives us access to req.files -- so we can check if avatar is present or not -- if needed see video for it 9:08:00
     // const avatarLocalPath = req.files?.avatar[0]?.path  //-- we used optional chaining here as If req.files is undefined (e.g., the user didn’t upload any files), and you try to access req.files.avatar[0].path, it will throw an error and crash app . by using ? if any of above is missing we just get undefined and app does not break  -- but when i teseted using psotamn it broke so below method used to write code
     //const coverImageLocalPath = req.files?.coverImage[0]?.path  
 
@@ -143,7 +143,7 @@ const loginUser= asyncHandler(async (req, res) => {
         throw new ApiError(400, "Username or email is required"); // 400 bad request error
     }
     
-    // abhi I have not decided ki username or email kiske basis pe login karana hai user ko so i am writing code accordingly which finds either username or email in DB - so it is some advanced way 
+    // abhi I have not decided ki username or email kiske basis pe login karana hai user ko so i am writing code accordingly which finds either username or email in DB - so it is some advanced way i.e this code works for both username based login and email based login
     const user = await User.findOne({
         $or: [{username}, {email}]
     })
@@ -153,18 +153,18 @@ const loginUser= asyncHandler(async (req, res) => {
     }
 
     // password check
-    const isPasswordValid = await user.isPasswordCorrect(password);
+    const isPasswordValid = await user.isPasswordCorrect(password);      // SEE one thing here monoose methods like findOne etcc i access using User but the methods i created like this one isPasswordCorrect this i have to access using user instance
     if(!isPasswordValid){
         throw new ApiError(401, "Invalid User Credentials"); // 401 unauthorized error
     }
 
-    // access and refresh token generate  -- this we will do many time so made a method of it 
+    // access and refresh token generate  -- this we will do many time so made a method of it which generates both access and refresh token for a user and also saves the refresh token in DB
     const {accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
-    const loggedInUser = await User.findById(user._id).    // 27:00 video see
+    const loggedInUser = await User.findById(user._id).    // 27:00 video see -- i need to send it in response 
     select("-password -refreshToken")
 
-    //send cookies
+    //send cookies - i need to define some options 
     const options = {
         httpOnly: true,
         secure: true
@@ -172,13 +172,13 @@ const loginUser= asyncHandler(async (req, res) => {
 
     return res
     .status(200)
-    .cookie("accessToken", accessToken, options)        // as I imporrted cookie parser middlweare so i can sent as many as cookie i want using .cookie()
+    .cookie("accessToken", accessToken, options)        // as I imporrted cookie parser middlweare so i can sent as many as cookie i want using .cookie()    --  cookie-parser is used for reading cookies from incoming requests (req.cookies).It is not responsible for sending cookies.Sending cookies is handled directly by Express via res.cookie().
     .cookie("refreshToken", refreshToken, options)
     .json(
         new ApiResponse(
             200,
             {
-                user: loggedInUser, accessToken,
+                user: loggedInUser, accessToken,    // we send token in cookie but also here send it in response beacuse may be uerr wants to store it in local storage or session storage of browser
                 refreshToken
             },
             "User logged in successfully!"
@@ -186,6 +186,7 @@ const loginUser= asyncHandler(async (req, res) => {
     )
 });
 
+//SEE VIDEO FOR THIS LOGOUT PART 
 //logic is remove cookies of that user and also refeshToken of that user from DB  -- Here i will need to design my ownn middleware see video for why 
 const logoutUser = asyncHandler(async(req, res) => {
     // now here i have aaccess of req.user beacuse its a secured route as i used auth middleware on thisn route. so i can get user easily now 
@@ -200,7 +201,7 @@ const logoutUser = asyncHandler(async(req, res) => {
             new: true
         }
     )
-
+    //for cookie i need options first 
     const options = {
         httpOnly: true,
         secure: true
@@ -215,7 +216,7 @@ const logoutUser = asyncHandler(async(req, res) => {
 
 const refreshAccessToken = asyncHandler(async(req, res) => {
     //access the refeshtoken firstly 
-    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;  // if user is using mobile app then may be req.cookie is undefined so i check in req.body also
 
     if(!incomingRefreshToken){
         throw new ApiError(401, "Unauthorized request");
@@ -228,7 +229,7 @@ const refreshAccessToken = asyncHandler(async(req, res) => {
             process.env.REFRESH_TOKEN_SECRET
         );
     
-        const user = User.findById(decodedToken?._id)   // remember while making refresh token i just passed user id as payload so here i get it by ._id
+        const user = await User.findById(decodedToken?._id)   // remember while making refresh token i just passed user id as payload so here i get it by ._id
     
         if(!user){
             throw new ApiError(401, "invalid refresh token")
@@ -239,7 +240,7 @@ const refreshAccessToken = asyncHandler(async(req, res) => {
             throw new ApiError(401, "RefreshToken is expired or used")
         };
     
-        // if we came here then everythoing okay so generate new access token for this user
+        // if we came here then everythoing okay so generate new access token for this user also new refresh token so that user can use it next time to get new access token
         const options = {
             httpOnly: true,
             secure: true
@@ -296,7 +297,7 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
     const {fullName, email } = req.body;
 
     if(!fullName || !email){
-        throw new ApiError(400, "Full name and email are required")
+        throw new ApiError(400, "Full name and email both are required")
     }
 
     const user = await User.findByIdAndUpdate(
@@ -316,7 +317,7 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
 
 //Now about we wrote code for updating text based data now for files its some differnt -- i need to use multer middleware to access files and also auth middleware so that only logged in user an update files -- routing ke time pe keep this in mindd 
 const updateUserAvatar = asyncHandler(async(req, res) => {
-    // firtly i am using multer so ican access file like req.file
+    // firtly i am using multer so ican access file like req.file. Multer middleware must have already been used (upload.single("avatar")) in the route before this controller.
     const avatarLocalPath = req.file?.path
 
     if(!avatarLocalPath){
@@ -389,17 +390,17 @@ const getUserChannelProfile = asyncHandler(async(req,res) => {
     const channel = await User.aggregate([
         {
             $match: {
-                username: username.toLowerCase()  // after this line i get the user whose channel i want to see
+                username: username?.toLowerCase()  // after this line i get the user whose channel i want to see
             }
-        }, // now i find how amny subscribers are there for this channel
+        }, // now i find how many subscribers are there for this channel
         {
             $lookup: {
                 from: "subscriptions",
                 localField: "_id",
-                foreignField: "channel",
+                foreignField: "channel",  // as told in video to get subscribers i need to get all those document where channel = c
                 as: "subscribers"
             }
-        },  // now i apply one more pipeline to fin , how many channels i have subscribed
+        },  // now i apply one more pipeline to find , how many channels i have subscribed
         {
             $lookup: {
                 from: "subscriptions",
@@ -500,7 +501,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     .json(
         new ApiResponse(
             200,
-            user[0].watchHistory,
+            user[0].watchHistory,  //chatgPt why [0] used i.e why first value i gets data in from returned array
             "Watch history fetched successfully!"
         )
     )

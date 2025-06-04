@@ -19,7 +19,7 @@ const videoSchema = new Schema(
             type: String, 
             required: true
         },
-        duration: {
+        duration: {   //cloudinary will give this detail
             type: Number, 
             required: true
         },
@@ -42,6 +42,6 @@ const videoSchema = new Schema(
     }
 )
 
-videoSchema.plugin(mongooseAggregatePaginate);
+videoSchema.plugin(mongooseAggregatePaginate);  // Now it allows us to write aggreagtion queries here 
 
 export const Video = mongoose.model("Video", videoSchema)

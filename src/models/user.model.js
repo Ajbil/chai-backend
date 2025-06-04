@@ -32,7 +32,7 @@ const userSchema = new Schema({
     coverImage: {
         type: String,    // we will use third part cloudinary url here
     },
-    watchHistory: [   // this field is depenedent on video so see how to write this 
+    watchHistory: [   // this field is depenedent on video so see how to write this -- and it is an array
         {
             type: Schema.Types.ObjectId,
             ref: "Video"
@@ -56,19 +56,21 @@ userSchema.pre("save", async function(next) { // encrytpion takes time so use as
     if (this.isModified("password")) { // if password is modified then only encrypt it  before supppose user changed its avatar then we dont want to update password , we only want to encrypt password for first time or when it is changed 
         this.password = await bcrypt.hash(this.password, 10);
     }
-    next();
+    next();  // it is a middlewware so when its work completes we call next()
 });
 
 //verifying password during login
 userSchema.methods.isPasswordCorrect = async function(password) {  //this custom method will be used to compare password when user login
-    return await bcrypt.compare(password, this.password);
+    return await bcrypt.compare(password, this.password);    //this.password is encrypted
 }
+
+// BOTH ACCESSTOKEN & REFRESHTOKEN are JWT tokens only 
 
 //generating token for authentication
 userSchema.methods.generateAccessToken = function() {
     return jwt.sign(
         {
-            _id: this._id,
+            _id: this._id,  // this function is added on methods of userSchema and hence it will be available to all user objects created from this schema, so this._id will refer to the user object on which this method is called
             email: this.email,
             username: this.username,
             fullname: this.fullName,
@@ -79,7 +81,8 @@ userSchema.methods.generateAccessToken = function() {
     );
 }
 
-// refresh token are long-lived token then access token
+// refresh token refreshes frequently and is used to get new access token when it expires without need of user to login again, so it has longer expiry time than access token
+//generating refresh token for authentication
 userSchema.methods.generateRefreshToken = function() {
     return jwt.sign(
         {
