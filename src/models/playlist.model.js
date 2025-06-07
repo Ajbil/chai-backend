@@ -9,13 +9,13 @@ const playlistSchema = new Schema ({
         type: String,
         required : true
     },
-    videos: [
+    videos: [ // it is an array as a playlist can have multiple videos
         {
             type: Schema.Types.ObjectId,
             ref: "Video"
         }
     ],
-    owner : {
+    owner : {  //owner will be one only
         type: Schema.Types.ObjectId,
         ref: "User"
     }

@@ -1,4 +1,4 @@
-// Its work is to verify user hai ya nahi hai - logic is when user will login I have sent refresh and accestoken with that llogin request so i will check if he have correct token, and if corect then i will add a new object in req i.e req.user
+// Its work is to verify user login hai ya nahi hai - logic is when user will login I have sent refresh and accestoken with that llogin request so i will check if he have correct token, and if corect then i will add a new object in req i.e req.user
 
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";

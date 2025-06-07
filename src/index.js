@@ -8,7 +8,7 @@ import connectDB from './db/index.js';
 
 dotenv.config({path: './.env'}); //Reads the .env file and adds its variables to process.env, making them accessible throughout the app. and we can use them then like process.env.PORT, process.env.MONGODB_URI etc.
 
-connectDB()  //jab bhi ek async method complete hota hai it returns a promise on which i can apply .then and .cathc and here this connectDB is a async fun
+connectDB()  //jab bhi ek async method complete hota hai it returns a promise on which i can apply .then and .catch and here this connectDB is a async fun
 .then(() => {
     const server = app.listen(process.env.PORT || 8000, () => {
         console.log(`Server is listening on port : ${process.env.PORT}`); 

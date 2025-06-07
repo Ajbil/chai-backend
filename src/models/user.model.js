@@ -45,6 +45,9 @@ const userSchema = new Schema({
     refreshToken: {
         type: String
     }
+    // Only storing refreshToken in DB because it's long-lived and needed to reissue accessTokens.
+    // AccessTokens are short-lived, generated dynamically, and stored on the client (e.g., in cookies).
+    // No need to persist accessToken in DB.
 },
 {
     timestamps: true
@@ -60,8 +63,8 @@ userSchema.pre("save", async function(next) { // encrytpion takes time so use as
 });
 
 //verifying password during login
-userSchema.methods.isPasswordCorrect = async function(password) {  //this custom method will be used to compare password when user login
-    return await bcrypt.compare(password, this.password);    //this.password is encrypted
+userSchema.methods.isPasswordCorrect = async function(password) {  //this custom method will be used to compare password when user login -- these are called on indiviual documents --this inside a method refers to the current document (user, post, etc.).
+    return await bcrypt.compare(password, this.password);    //this.password is hashed password stored in db and password is what user enters
 }
 
 // BOTH ACCESSTOKEN & REFRESHTOKEN are JWT tokens only 

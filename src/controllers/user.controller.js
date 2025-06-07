@@ -78,13 +78,13 @@ const registerUser = asyncHandler( async (req, res) => {  // using asyncHandler(
     if(req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0) {
         avatarLocalPath = req.files.avatar[0].path;
     }
-    console.log(avatarLocalPath);
+    // console.log(avatarLocalPath);
 
     let coverImageLocalPath;
     if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
         coverImageLocalPath = req.files.coverImage[0].path; // check if cover image is present or not
     }
-    console.log(coverImageLocalPath); // for debugging purpose
+    // console.log(coverImageLocalPath); // for debugging purpose
 
 
     if(!avatarLocalPath) {
@@ -137,7 +137,7 @@ const loginUser= asyncHandler(async (req, res) => {
     */
 
     const { email, username, password } = req.body; // destructuring the data from request body
-    console.log(email);
+    // console.log(email);
 
     if(!username && !email){
         throw new ApiError(400, "Username or email is required"); // 400 bad request error

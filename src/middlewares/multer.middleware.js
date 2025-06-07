@@ -1,5 +1,5 @@
 // copied code from documentation of multer and modified it to use in our project  --- can see documnetation for details
-// here i am  configuring multer to temporarily store uploaded files on our local disk.
+// here i am  configuring multer to temporarily store uploaded files on our local disk.  cloudinary will take this local file path and upload the files then on cloudinary server 
 
 import multer from 'multer';
 
