@@ -1,4 +1,4 @@
-Complete backend developer course part 1 -- advance professional level project.    
+Complete backend developer course part  -- production grade backend development.    
 
 
 - [Model link](https://app.eraser.io/workspace/YtPqZ1VogxGy1jzIDkzj)
